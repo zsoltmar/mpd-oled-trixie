@@ -13,6 +13,7 @@ doc_DATA = README.md NEWS AUTHORS COPYING mpd_oled.jpg
 docdocdir = ${docdir}/doc
 docdoc_DATA = \
 	doc/FAQ.md \
+	doc/install_moode10_source.md \
 	doc/install_moode7_deb.md \
 	doc/install_moode7_source.md \
 	doc/install_moode6_deb.md \

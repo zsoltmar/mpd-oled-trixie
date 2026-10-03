@@ -911,34 +911,31 @@ void ArduiPi_OLED::display(void)
   }
   // I2C
   else {
-    char buff[17];
     uint8_t x;
 
-    // Setup D/C to switch to data mode
-    buff[0] = SSD_Data_Mode;
+    // One page per transaction. The kernel driver splits it into FIFO
+    // chunks, so this stays a single I2C transfer instead of 8.
+    const uint16_t page_bytes = 128;
+    char page[page_bytes + 1];
+    page[0] = SSD_Data_Mode;
 
     if (oled_type == OLED_SH1106_I2C_128x64) {
       for (uint8_t k = 0; k < 8; k++) {
-        sendCommand(0xB0 + k); // set page addressSSD_Data_Mode;
-        sendCommand(0x02);     // set lower column address
-        sendCommand(0x10);     // set higher column address
-
-        for (i = 0; i < 8; i++) {
-          for (x = 1; x <= 16; x++)
-            buff[x] = *p++;
-
-          fastI2Cwrite(buff, 17);
-        }
+        sendCommand(0xB0 + k, 0x02, 0x10);
+        for (x = 1; x <= page_bytes; x++)
+          page[x] = *p++;
+        fastI2Cwrite(page, page_bytes + 1);
       }
     }
     else {
-      // loop trough all OLED buffer and
-      // send a bunch of 16 data byte in one xmission
-      for (i = 0; i < oled_buff_size; i += 16) {
-        for (x = 1; x <= 16; x++)
-          buff[x] = *p++;
-
-        fastI2Cwrite(buff, 17);
+      while (i < oled_buff_size) {
+        uint16_t n = oled_buff_size - i;
+        if (n > page_bytes)
+          n = page_bytes;
+        for (x = 1; x <= n; x++)
+          page[x] = *p++;
+        i += n;
+        fastI2Cwrite(page, n + 1);
       }
     }
   }

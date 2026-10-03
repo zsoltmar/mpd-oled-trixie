@@ -1,6 +1,24 @@
+# mpd_oled for moOde 10 (Trixie)
+
+Fork of [antiprism/mpd_oled](https://github.com/antiprism/mpd_oled) for
+moOde 10+ on Raspberry Pi OS Trixie. Upstream binary packages stop at
+moOde 8. Install from source, or deploy from this tree:
+
+```
+./scripts/deploy-to-pi.sh
+```
+
+Default target is `pi@moode.local` (`MPD_OLED_HOST` overrides it).
+Instructions: [doc/install_moode10_source.md](doc/install_moode10_source.md).
+
+Idle screen (`draw_clock`): weekday, large clock, date, centered IP.
+Playing screen (`draw_spect_display`): full-width spectrum, title, artist,
+elapsed time, bitrate, volume, progress. SPI on a Pi 5 is still unsupported
+by the bundled bcm2835 library.
+
 # Moode, Volumio, RuneAudio and MPD OLED Spectrum Display for Raspberry Pi
 
-**Please note that mpd_oled is no longer being developed. Check for**
+**Please note that upstream mpd_oled is no longer being developed. Check for**
 **[issues](https://github.com/antiprism/mpd_oled/issues) before using**
 **(in particular, SPI screens are not supported on the Pi 5). Critical**
 **issues will still be reviewed, in case an easy fix is possible.**
@@ -21,6 +39,7 @@ commands take a long time to run on a Pi Zero).
 
 ### Moode
 
+* [Install mpd_oled from source on Moode 10 (Trixie)](doc/install_moode10_source.md)
 * [Install mpd_oled binary package on Moode 8](doc/install_moode8_deb.md)
 * [Install mpd_oled binary package on Moode 7](doc/install_moode7_deb.md)
 * [Install mpd_oled binary package on Moode 6](doc/install_moode6_deb.md)

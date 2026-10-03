@@ -39,6 +39,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <ctime>
 #include <math.h>
 #include <string>
 #include <vector>
@@ -46,7 +47,7 @@
 using std::string;
 using std::vector;
 
-const int SPECT_WIDTH = 64;
+const int SPECT_WIDTH = 128;
 
 ArduiPi_OLED display; // global, for use during signal handling
 
@@ -437,44 +438,83 @@ Status start_cava(FILE **p_fifo_file, const OledOpts &opts)
   return Status::ok();
 }
 
-// Draw fullscreen 128x64 clock/date
+// Idle screen, 128x64:
+//   weekday + link      y 0
+//   clock, text size 3  y 16
+//   date                y 44
+//   centered IP         y 56
 void draw_clock(ArduiPi_OLED &display, const display_info &disp_info)
 {
   display.clearDisplay();
-  // const int H = 8;  // character height
-  const int W = 6; // character width
-  draw_text(display, 22, 0, 16, disp_info.conn.get_ip_addr());
+  const int W = 6;
+
+  char weekday[16];
+  time_t t = time(0);
+  struct tm *now = localtime(&t);
+  strftime(weekday, sizeof(weekday), "%A", now);
+  draw_text(display, 0, 0, 16, weekday);
   draw_connection(display, 128 - 2 * W, 0, disp_info.conn);
-  draw_time(display, 4, 16, 4, disp_info.clock_format);
-  draw_date(display, 32, 56, 1, disp_info.date_format);
+
+  draw_time(display, 19, 16, 3, disp_info.clock_format);
+  draw_date(display, 34, 44, 1, disp_info.date_format);
+
+  string ip = disp_info.conn.get_ip_addr();
+  int ip_chars = (int)ip.size();
+  if (ip_chars > 21)
+    ip_chars = 21;
+  int ip_x = (128 - ip_chars * W) / 2;
+  if (ip_x < 0)
+    ip_x = 0;
+  draw_text(display, ip_x, 56, 21, ip);
 }
 
+// Playing screen, 128x64. Spectrum uses the full width; status is below it
+// so bitrate, volume and the clock no longer sit on top of the bars.
+//   spectrum 128x30     y 0
+//   title               y 32
+//   artist / station    y 41
+//   elapsed, rate, vol  y 50
+//   progress            y 60
 void draw_spect_display(ArduiPi_OLED &display, const display_info &disp_info)
 {
-  const int H = 8; // character height
-  const int W = 6; // character width
-  draw_spectrum(display, 0, 0, SPECT_WIDTH, 32, disp_info.spect);
-  draw_connection(display, 128 - 2 * W, 0, disp_info.conn);
-  draw_triangle_slider(display, 128 - 5 * W, 1, 11, 6,
-                       disp_info.status.get_volume());
-  if (disp_info.status.get_kbitrate() > 0)
-    draw_text(display, 128 - 10 * W, 0, 4, disp_info.status.get_kbitrate_str());
+  const int W = 6;
 
-  int clock_offset = (disp_info.clock_format < 2) ? 0 : -2;
-  draw_time(display, 128 - 10 * W + clock_offset, 2 * H, 2,
-            disp_info.clock_format);
-
-  vector<double> scroll_origin(disp_info.scroll.begin() + 2,
-                               disp_info.scroll.begin() + 4);
-  draw_text_scroll(display, 0, 4 * H + 4, 20, disp_info.status.get_origin(),
-                   scroll_origin, disp_info.text_change.secs());
+  draw_spectrum(display, 0, 0, SPECT_WIDTH, 30, disp_info.spect);
 
   vector<double> scroll_title(disp_info.scroll.begin(),
                               disp_info.scroll.begin() + 2);
-  draw_text_scroll(display, 0, 6 * H, 20, disp_info.status.get_title(),
+  draw_text_scroll(display, 0, 32, 21, disp_info.status.get_title(),
                    scroll_title, disp_info.text_change.secs());
 
-  draw_solid_slider(display, 0, 7 * H + 6, 128, 2,
+  vector<double> scroll_origin(disp_info.scroll.begin() + 2,
+                               disp_info.scroll.begin() + 4);
+  draw_text_scroll(display, 0, 41, 21, disp_info.status.get_origin(),
+                   scroll_origin, disp_info.text_change.secs());
+
+  int elapsed = disp_info.status.get_elapsed_secs();
+  if (elapsed < 0)
+    elapsed = 0;
+  char elapsed_str[8];
+  snprintf(elapsed_str, sizeof(elapsed_str), "%02d:%02d", (elapsed / 60) % 100,
+           elapsed % 60);
+  draw_text(display, 0, 50, 5, elapsed_str);
+
+  if (disp_info.status.get_kbitrate() > 0)
+    draw_text(display, 6 * W, 50, 4, disp_info.status.get_kbitrate_str());
+
+  int vol = disp_info.status.get_volume();
+  char vol_str[8];
+  if (vol < 0)
+    snprintf(vol_str, sizeof(vol_str), " --");
+  else {
+    if (vol > 100)
+      vol = 100;
+    snprintf(vol_str, sizeof(vol_str), "%3d", vol);
+  }
+  draw_text(display, 128 - 6 * W, 50, 3, vol_str);
+  draw_connection(display, 128 - 2 * W, 50, disp_info.conn);
+
+  draw_solid_slider(display, 0, 60, 128, 3,
                     100 * disp_info.status.get_progress());
 }
 

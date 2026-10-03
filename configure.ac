@@ -1,6 +1,6 @@
 
 AC_PREREQ([2.69])
-AC_INIT([mpd_oled], [0.2], [adrian@antiprism.com])
+AC_INIT([mpd_oled], [0.3], [adrian@antiprism.com])
 AM_INIT_AUTOMAKE([1.9 foreign])
 LT_INIT
 

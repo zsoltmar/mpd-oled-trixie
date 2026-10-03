@@ -14,8 +14,8 @@ wish to change the layout then you will need to change the code.
 
 In main.cpp there are two simple functions that draw the layout
 
-   draw_clock():         draws the stop screen
-   draw_spect_display(): draws the play/pause screen
+   draw_clock():         draws the stop screen (weekday, clock, date, IP)
+   draw_spect_display(): draws the play/pause screen (full-width spectrum)
 
 If you remove the spectrum analyser component then there is no need
 to change any other code, just use a nonexistant file for the FIFO
@@ -36,6 +36,13 @@ through MPD will show a spectrum. Playing through Spotify or Airplay
 may not show a spectrum. A spectrum can be enabled for all sources
 by configuring ALSA to make the copy. See the thread on
 [using mpd_oled with Spotify and Airplay](https://github.com/antiprism/mpd_oled/issues/4)
+
+### How do I get 60 fps?
+
+Raise the I2C bus to 800 kHz and run `mpd_oled -f 60`. The steps and the
+measured limits are in
+[Install on moOde 10](install_moode10_source.md#frame-rate).
+At the default 100 kHz, use `-f 15` to `-f 25`.
 
 ### Why is my screen flashing and corrupted?
 

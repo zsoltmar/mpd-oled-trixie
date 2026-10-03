@@ -79,7 +79,7 @@ string get_ip_address(const char *if_str)
   return ip_str;
 }
 
-bool eth_connection(char *ifname)
+bool eth_connection(const char *ifname)
 {
   struct ifreq ifr;
 
@@ -102,14 +102,12 @@ bool connection_info::init()
   ip_addr.clear();
   link = 0;
 
-  // Check for ethernet
-  const char *digits = "0123456789";
-  char ifname[] = "ethN";
-  for (int i = 0; i < 4; i++) {
-    ifname[3] = digits[i];
-    if (eth_connection(ifname)) {
+  // eth* is classic naming. end* is predictable naming on Pi OS Trixie.
+  const char *eth_names[] = {"eth0", "eth1", "end0", "end1", NULL};
+  for (int i = 0; eth_names[i] != NULL; i++) {
+    if (eth_connection(eth_names[i])) {
       type = TYPE_ETH;
-      if_name = ifname;
+      if_name = eth_names[i];
       break;
     }
   }
@@ -362,12 +360,18 @@ int mpd_info::init()
       char artist_name[line_sz] = {0};
       char album_name[line_sz] = {0};
       char title_name[line_sz] = {0};
+      char volume_s[line_sz] = {0};
+      char elapsed_s[line_sz] = {0};
+      char duration_s[line_sz] = {0};
+      char bitrate_s[line_sz] = {0};
+      char mute_s[line_sz] = {0};
       char buff[line_sz];
 
       bool has_title = false;
+      bool has_state = false;
       bool is_empty = true;
       while (fgets(line, line_sz - 1, file)) {
-	is_empty = false;
+        is_empty = false;
         if (sscanf(line, "file=%[^\n]", buff) == 1)
           strcpy(file_name, buff);
         else if (sscanf(line, "artist=%[^\n]", buff) == 1)
@@ -378,35 +382,65 @@ int mpd_info::init()
           strcpy(title_name, buff);
           has_title = true;
         }
-        else if (sscanf(line, "artist=%[^\n]", buff) == 1)
-          strcpy(artist_name, buff);
+        else if (sscanf(line, "volume=%[^\n]", buff) == 1)
+          strcpy(volume_s, buff);
+        else if (sscanf(line, "elapsed=%[^\n]", buff) == 1)
+          strcpy(elapsed_s, buff);
+        else if (sscanf(line, "duration=%[^\n]", buff) == 1)
+          strcpy(duration_s, buff);
+        else if (sscanf(line, "bitrate=%[^\n]", buff) == 1)
+          strcpy(bitrate_s, buff);
+        else if (sscanf(line, "mute=%[^\n]", buff) == 1)
+          strcpy(mute_s, buff);
         else if (sscanf(line, "state=%[^\n]", buff) == 1) {
+          has_state = true;
           if (strcmp(buff, "stop") == 0)
             state = MPD_STATE_STOP;
-	  else if (strcmp(buff, "play") == 0)
+          else if (strcmp(buff, "play") == 0)
             state = MPD_STATE_PLAY;
-	  else if (strcmp(buff, "pause") == 0)
+          else if (strcmp(buff, "pause") == 0)
             state = MPD_STATE_PAUSE;
         }
       }
       fclose(file);
 
-      if(is_empty)
+      if (is_empty)
         state = MPD_STATE_STOP;
 
-      if(state != MPD_STATE_STOP) {
-        if (!has_title) { // assume this is a renderer
-          init_vals();
-          origin = file_name; // display the renderer as the song origin
+      // AirPlay / Spotify lines omit state=. A title or an "Active" source
+      // still means something is playing.
+      if (!has_state && !is_empty && state == MPD_STATE_UNKNOWN) {
+        bool renderer = strstr(file_name, "Active") != NULL;
+        if (has_title || renderer)
           state = MPD_STATE_PLAY;
+      }
+
+      if (state != MPD_STATE_STOP && state != MPD_STATE_UNKNOWN) {
+        if (!has_title) {
+          origin = to_ascii(file_name);
+          title.clear();
         }
-        else {
-          if (strcmp("Radio station", artist_name) == 0)
-            origin = to_ascii(album_name);
-          else
-            origin = to_ascii(artist_name);
+        else if (strcmp("Radio station", artist_name) == 0) {
+          origin = to_ascii(album_name);
           title = to_ascii(title_name);
         }
+        else {
+          origin = to_ascii(artist_name);
+          title = to_ascii(title_name);
+        }
+
+        if (volume_s[0] != '\0') {
+          int vol = atoi(volume_s);
+          if (mute_s[0] == '1')
+            vol = 0;
+          volume = vol;
+        }
+        if (elapsed_s[0] != '\0')
+          song_elapsed_secs = (int)atof(elapsed_s);
+        if (duration_s[0] != '\0')
+          song_total_secs = (int)atof(duration_s);
+        if (bitrate_s[0] != '\0')
+          kbitrate = atoi(bitrate_s);
       }
     }
   }

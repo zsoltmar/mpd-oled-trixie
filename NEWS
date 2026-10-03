@@ -1,3 +1,10 @@
+Version 0.03
+02-10-26
+         Fork for moOde 10 on Raspberry Pi OS Trixie.
+         Full-width spectrum, idle clock with weekday and IP.
+         Read volume, elapsed, duration and bitrate from currentsong.txt.
+         Treat AirPlay/Spotify metadata with no state= line as playing.
+
 Version 0.02
 01-02-21 Adrian Rossiter <adrian@antiprism.com>
          Changes

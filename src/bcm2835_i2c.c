@@ -100,8 +100,6 @@ int bcm2835_i2c_alt_write(const char *buf, uint32_t len)
         /* ERROR HANDLING: i2c transaction failed */
         fprintf(stderr, "Failed to write to the i2c bus.\n");
   }
-  ////////////
-  usleep(1);
 
   return (reason);
 }

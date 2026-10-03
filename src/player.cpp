@@ -48,7 +48,9 @@ bool file_exists(const std::string &name)
 void Player::init_detect()
 {
   // Check for files associated with a player OS
-  if (file_exists("/var/www/command/moode.php"))
+  // moOde 10 still ships moode.php. moodeutl covers a relocated web root.
+  if (file_exists("/var/www/command/moode.php") ||
+      file_exists("/usr/local/bin/moodeutl"))
     name = Player::Name::moode;
   else if (file_exists("/volumio"))
     name = Player::Name::volumio;
