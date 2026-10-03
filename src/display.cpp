@@ -39,7 +39,7 @@ void print(ArduiPi_OLED &display, const char *str)
 }
 
 int draw_spectrum(ArduiPi_OLED &display, int x_start, int y_start, int width,
-                  int height, const spect_graph &spect)
+                  int height, const spect_graph &spect, bool full_bleed)
 {
   const int num_bars = spect.heights.size();
   const int gap = spect.gap;
@@ -47,20 +47,35 @@ int draw_spectrum(ArduiPi_OLED &display, int x_start, int y_start, int width,
   int total_bar_pixes = width - (num_bars - 1) * gap;
   int bar_width = total_bar_pixes / num_bars;
   int bar_height_max = height - 1;
+  if (full_bleed)
+    bar_height_max = height;
+  int leftover = total_bar_pixes % num_bars;
   int graph_width = num_bars * bar_width + (num_bars - 1) * gap;
 
   if (bar_width < 1 || bar_height_max < 1) // bars too small to draw
     return -1;
 
-  // Draw spectrum graph axes
-  display.drawFastHLine(x_start, height - 1 - y_start, graph_width, WHITE);
+  if (!full_bleed) {
+    display.drawFastHLine(x_start, height - 1 - y_start, graph_width, WHITE);
+  }
+  int used = 0;
   for (int i = 0; i < num_bars; i++) {
-    // map vals range to graph ht
-    int val = bar_height_max * spect.heights[i] / 255.0 + 0.5;
-    int x = x_start + i * (bar_width + gap);
-    // int y = y_start+2;
-    if (val)
-      display.fillRect(x, y_start + height - val - 2, bar_width, val, WHITE);
+    int bw = bar_width;
+    if (full_bleed && i < leftover)
+      bw += 1;
+    int val = (int)(bar_height_max * spect.heights[i] / 255.0 + 0.5);
+    if (val > bar_height_max)
+      val = bar_height_max;
+    int x = x_start + used;
+    used += bw;
+    if (i + 1 < num_bars)
+      used += gap;
+    if (!val)
+      continue;
+    int y = y_start + height - val;
+    if (!full_bleed)
+      y -= 2;
+    display.fillRect(x, y, bw, val, WHITE);
   }
   return 0;
 }

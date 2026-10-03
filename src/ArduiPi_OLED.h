@@ -185,6 +185,7 @@ public:
   void stopscroll(void);
 
   void drawPixel(int16_t x, int16_t y, uint16_t color);
+  void xorPixel(int16_t x, int16_t y);
 
 private:
   uint8_t *poledbuff; // Pointer to OLED data buffer in memory
@@ -200,7 +201,7 @@ private:
   void fastSPIwrite(uint8_t c);
   void fastSPIwrite(char *tbuf, uint32_t len);
   void fastI2Cwrite(uint8_t c);
-  void fastI2Cwrite(char *tbuf, uint32_t len);
+  int fastI2Cwrite(char *tbuf, uint32_t len);
   void slowSPIwrite(uint8_t c);
 
   // volatile uint8_t *dcport;

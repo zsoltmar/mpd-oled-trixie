@@ -156,9 +156,9 @@ inline void ArduiPi_OLED::fastSPIwrite(char *tbuf, uint32_t len)
 {
   bcm2835_spi_writenb(tbuf, len);
 }
-inline void ArduiPi_OLED::fastI2Cwrite(char *tbuf, uint32_t len)
+inline int ArduiPi_OLED::fastI2Cwrite(char *tbuf, uint32_t len)
 {
-  bcm2835_i2c_alt_write(tbuf, len);
+  return bcm2835_i2c_alt_write(tbuf, len);
 }
 
 // the most basic function, set a single pixel
@@ -220,6 +220,17 @@ switch (getRotation())
     else
       *p &= ~_BV((y % 8));
   }
+}
+
+void ArduiPi_OLED::xorPixel(int16_t x, int16_t y)
+{
+  if ((x < 0) || (x >= width()) || (y < 0) || (y >= height()))
+    return;
+  if (oled_type == OLED_SEEED_I2C_96x96 || poledbuff == NULL)
+    return;
+
+  uint8_t *p = poledbuff + (x + (y / 8) * oled_width);
+  *p ^= _BV(y % 8);
 }
 
 // Display instantiation
@@ -539,7 +550,7 @@ void ArduiPi_OLED::begin(void)
   }
   else if (oled_type == OLED_SH1106_I2C_128x64) {
     sendCommand(SSD1306_Set_Lower_Column_Start_Address |
-                0x02); /*set lower column address*/
+                0x00); /*set lower column address*/
     sendCommand(
         SSD1306_Set_Higher_Column_Start_Address); /*set higher column address*/
     sendCommand(SSD1306_Set_Start_Line);          /*set display start line*/
@@ -920,11 +931,22 @@ void ArduiPi_OLED::display(void)
     page[0] = SSD_Data_Mode;
 
     if (oled_type == OLED_SH1106_I2C_128x64) {
+      // This panel wraps at column 128. Starting at column 2 pushed the
+      // last pixels of each row onto the left edge.
+      char cmd[4];
+      cmd[0] = SSD_Command_Mode;
+      cmd[2] = 0x00;
+      cmd[3] = 0x10;
       for (uint8_t k = 0; k < 8; k++) {
-        sendCommand(0xB0 + k, 0x02, 0x10);
+        cmd[1] = (char)(0xB0 + k);
         for (x = 1; x <= page_bytes; x++)
           page[x] = *p++;
-        fastI2Cwrite(page, page_bytes + 1);
+        for (int attempt = 0; attempt < 3; attempt++) {
+          if (fastI2Cwrite(cmd, 4) != 0)
+            continue;
+          if (fastI2Cwrite(page, page_bytes + 1) == 0)
+            break;
+        }
       }
     }
     else {

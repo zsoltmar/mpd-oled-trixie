@@ -349,7 +349,8 @@ int mpd_info::init()
   // so determine and display the renderer name instead.
   // Also, use for origin and title
   if (player.is(Player::Name::moode)) {
-    state = MPD_STATE_UNKNOWN; // ignore MPD state
+    enum mpd_state mpd_reported = state;
+    state = MPD_STATE_UNKNOWN; // prefer the moOde file, then fall back
     const char *MOODE_CURRENT_SONG_FILE = "/var/local/www/currentsong.txt";
     FILE *file = fopen(MOODE_CURRENT_SONG_FILE, "r");
     if (file != NULL) {
@@ -368,6 +369,7 @@ int mpd_info::init()
       char buff[line_sz];
 
       bool has_title = false;
+      bool outrate_live = false;
       bool has_state = false;
       bool is_empty = true;
       while (fgets(line, line_sz - 1, file)) {
@@ -392,6 +394,10 @@ int mpd_info::init()
           strcpy(bitrate_s, buff);
         else if (sscanf(line, "mute=%[^\n]", buff) == 1)
           strcpy(mute_s, buff);
+        else if (sscanf(line, "outrate=%[^\n]", buff) == 1) {
+          if (buff[0] != '\0' && strcmp(buff, "Not playing") != 0)
+            outrate_live = true;
+        }
         else if (sscanf(line, "state=%[^\n]", buff) == 1) {
           has_state = true;
           if (strcmp(buff, "stop") == 0)
@@ -413,6 +419,15 @@ int mpd_info::init()
         bool renderer = strstr(file_name, "Active") != NULL;
         if (has_title || renderer)
           state = MPD_STATE_PLAY;
+      }
+
+      // The file can stay on stop while MPD or the DAC output is already live.
+      if (state != MPD_STATE_PLAY && state != MPD_STATE_PAUSE) {
+        if (outrate_live)
+          state = MPD_STATE_PLAY;
+        else if (mpd_reported == MPD_STATE_PLAY ||
+                 mpd_reported == MPD_STATE_PAUSE)
+          state = mpd_reported;
       }
 
       if (state != MPD_STATE_STOP && state != MPD_STATE_UNKNOWN) {

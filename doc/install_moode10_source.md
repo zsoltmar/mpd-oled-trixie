@@ -108,3 +108,46 @@ frames and looks uneven. The Pi 4 CPU is not the limit.
 
 Wiring and some panels get unstable above 800 kHz. If the image breaks
 up, drop the baud to 400000 and use `-f 30`.
+
+## Alternate layout
+
+`-alt` (or `--alt`) is a separate layout from the default screens.
+
+* Stopped or paused-as-stop: the time only, centered.
+* Playing: the spectrum fills the 128x64 panel.
+* `-alt` does not use `-I`.
+
+```
+sudo mpd_oled_service_edit -o 6 -a 3c -b 16 -g 1 -f 60 -c alsa,plughw:Loopback,1 -alt
+```
+
+## Screensaver
+
+`-saver` (or `--saver`) draws an inverted region over either layout. It
+replaces `-I`. The optional number after a comma is that saver's speed.
+
+* `spin` — a line through the screen center. One half is inverted. The line
+  turns clockwise. Speed is full turns per minute (default `0.5`, so a full
+  turn takes two minutes).
+* `sine` — the split is one sine cycle across the width, using the full
+  height. Pixels on the wave side are inverted, and the wave moves right.
+  Speed is screen-widths per minute (default `1`).
+* `stripes` — a new random row or column every second. White paints the
+  inversion mask and black erases it. Finished stripes stay, so the mask
+  keeps changing while the clock or spectrum underneath is left as drawn.
+  A column grows from the top or the bottom, a row from the left or the
+  right. Speed is how fast that stripe appears, in lengths per minute
+  (default `60`, so it finishes in 1 second). Then thickness in pixels
+  (default `1`), axis `x`, `y`, or `xy` (default `xy`), and direction.
+  An `x` stripe uses `up`, `down`, or `up-down`. A `y` stripe uses `left`,
+  `right`, or `left-right`. The default is either way.
+  Example: `-saver stripes,60,3,y,left`.
+* `noise` — sparse specks that travel, like rain. New specks enter on the
+  trailing edge. The first number is pixels per second (default `30`,
+  downward). The second is the percent of pixels inverted (default `4`).
+  Direction is `up`, `down`, `left`, or `right`. Example: `-saver noise,30,4,down`.
+
+```
+sudo mpd_oled_service_edit -o 6 -b 16 -g 1 -f 60 -c alsa,plughw:Loopback,1 -alt -saver spin
+sudo mpd_oled_service_edit -o 6 -b 16 -g 1 -f 60 -c alsa,plughw:Loopback,1 -alt -saver stripes
+```

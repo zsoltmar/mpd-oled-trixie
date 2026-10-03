@@ -35,7 +35,8 @@
 
 // Draw spectrum graph
 int draw_spectrum(ArduiPi_OLED &display, int x_start, int y_start, int width,
-                  int height, const spect_graph &spect);
+                  int height, const spect_graph &spect,
+                  bool full_bleed = false);
 
 // Draw time HH:MM, according to what - 0: 24h leading 0, 1: 24h no leading 0
 //                                      2: 24h leading 0, 3: 24h no leading 0

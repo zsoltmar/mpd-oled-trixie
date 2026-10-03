@@ -96,11 +96,12 @@ int bcm2835_i2c_alt_write(const char *buf, uint32_t len)
                                             (const __u8 *)&buf[1]);
 */
   ///////////
-  if (write(i2c_fd, buf, len) != (ssize_t)len) {
-        /* ERROR HANDLING: i2c transaction failed */
-        fprintf(stderr, "Failed to write to the i2c bus.\n");
-  }
+  if (write(i2c_fd, buf, len) == (ssize_t)len)
+    return 0;
 
+  // The caller re-addresses the column before trying again. Retrying the
+  // same buffer here would paint it a second time, shifted.
+  fprintf(stderr, "Failed to write to the i2c bus.\n");
   return (reason);
 }
 

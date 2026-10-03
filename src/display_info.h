@@ -47,6 +47,7 @@ struct display_info {
   int clock_format;
   int date_format;
   char pause_screen;
+  bool alt_layout;
   connection_info conn;
   void conn_init() { conn.init(); }
   void update_from(const display_info &new_info);
